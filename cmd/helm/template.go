@@ -72,8 +72,8 @@ func newTemplateCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 				}
 				client.KubeVersion = parsedKubeVersion
 			}
-
-			client.DryRun = true
+			//FIXME(bandini): check this
+			//client.DryRun = action.DryRunClient
 			client.ReleaseName = "release-name"
 			client.Replace = true // Skip the name check
 			client.ClientOnly = !validate

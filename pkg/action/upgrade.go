@@ -71,7 +71,7 @@ type Upgrade struct {
 	DisableHooks bool
 	// DryRun controls whether the operation is prepared, but not executed.
 	// If `true`, the upgrade is prepared but not performed.
-	DryRun bool
+	DryRun DryRunType
 	// Force will, if set to `true`, ignore certain warnings and perform the upgrade anyway.
 	//
 	// This should be used with caution.
@@ -153,7 +153,7 @@ func (u *Upgrade) RunWithContext(ctx context.Context, name string, chart *chart.
 		return res, err
 	}
 
-	if !u.DryRun {
+	if u.DryRun != DryRunDisabled {
 		u.cfg.Log("updating status for upgraded release for %s", name)
 		if err := u.cfg.Releases.Update(upgradedRelease); err != nil {
 			return res, err
@@ -309,7 +309,7 @@ func (u *Upgrade) performUpgrade(ctx context.Context, originalRelease, upgradedR
 		return nil
 	})
 
-	if u.DryRun {
+	if u.DryRun != DryRunDisabled {
 		u.cfg.Log("dry run for %s", upgradedRelease.Name)
 		if len(u.Description) > 0 {
 			upgradedRelease.Info.Description = u.Description

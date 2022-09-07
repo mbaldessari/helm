@@ -62,6 +62,45 @@ const notesFileSuffix = "NOTES.txt"
 
 const defaultDirectoryPermission = 0755
 
+type DryRunType int
+
+const (
+	DryRunDisabled DryRunType = iota
+	DryRunClient
+	DryRunServer
+)
+
+func (e *DryRunType) String() string {
+	switch *e {
+	case DryRunDisabled:
+		return "disabled"
+	case DryRunClient:
+		return "client"
+	case DryRunServer:
+		return "server"
+	default:
+		return "client"
+	}
+}
+
+func (e *DryRunType) Set(v string) error {
+	switch v {
+	case "disabled":
+		*e = DryRunDisabled
+	case "client":
+		*e = DryRunClient
+	case "server":
+		*e = DryRunServer
+	default:
+		return errors.New(`must be one of "", "client" or "server". Empty string implies "client"`)
+	}
+	return nil
+}
+
+func (e *DryRunType) Type() string {
+	return `dry-run type. "" and "client" imply lookups are disabled. "server" implies lookups are enabled`
+}
+
 // Install performs an installation operation.
 type Install struct {
 	cfg *Configuration
@@ -70,7 +109,7 @@ type Install struct {
 
 	ClientOnly               bool
 	CreateNamespace          bool
-	DryRun                   bool
+	DryRun                   DryRunType
 	DisableHooks             bool
 	Replace                  bool
 	Wait                     bool
@@ -206,7 +245,7 @@ func (i *Install) RunWithContext(ctx context.Context, chrt *chart.Chart, vals ma
 	// contacts the upstream server and builds the capabilities object.
 	if crds := chrt.CRDObjects(); !i.ClientOnly && !i.SkipCRDs && len(crds) > 0 {
 		// On dry run, bail here
-		if i.DryRun {
+		if i.DryRun != DryRunDisabled {
 			i.cfg.Log("WARNING: This chart or one of its subcharts contains CRDs. Rendering may fail or contain inaccuracies.")
 		} else if err := i.installCRDs(crds); err != nil {
 			return nil, err
@@ -240,7 +279,7 @@ func (i *Install) RunWithContext(ctx context.Context, chrt *chart.Chart, vals ma
 	}
 
 	// special case for helm template --is-upgrade
-	isUpgrade := i.IsUpgrade && i.DryRun
+	isUpgrade := i.IsUpgrade && (i.DryRun != DryRunDisabled)
 	options := chartutil.ReleaseOptions{
 		Name:      i.ReleaseName,
 		Namespace: i.Namespace,
@@ -297,7 +336,7 @@ func (i *Install) RunWithContext(ctx context.Context, chrt *chart.Chart, vals ma
 	}
 
 	// Bail out here if it is a dry run
-	if i.DryRun {
+	if i.DryRun != DryRunDisabled {
 		rel.Info.Description = "Dry run complete"
 		return rel, nil
 	}
@@ -466,7 +505,7 @@ func (i *Install) availableName() error {
 	if err := chartutil.ValidateReleaseName(start); err != nil {
 		return errors.Wrapf(err, "release name %q", start)
 	}
-	if i.DryRun {
+	if i.DryRun != DryRunDisabled {
 		return nil
 	}
 
