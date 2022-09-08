@@ -72,8 +72,8 @@ func newTemplateCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 				}
 				client.KubeVersion = parsedKubeVersion
 			}
-			//FIXME(bandini): check this
-			//client.DryRun = action.DryRunClient
+			//FIXME(bandini): Not needed. For now default template to the server dry-run mode. I.e. lookups are allowed
+			client.DryRun = action.DryRunServer
 			client.ReleaseName = "release-name"
 			client.Replace = true // Skip the name check
 			client.ClientOnly = !validate
